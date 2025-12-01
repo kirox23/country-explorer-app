@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/country.dart';
 import '../services/country_service.dart';
+import '../providers/favorites_provider.dart';
 
 class CountryDetailScreen extends StatefulWidget {
   final String countryCode;
+  final Country? country;
 
   const CountryDetailScreen({
     super.key,
     required this.countryCode,
+    this.country,
   });
 
   @override
@@ -21,7 +25,11 @@ class _CountryDetailScreenState extends State<CountryDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _countryFuture = _countryService.getCountryByCode(widget.countryCode);
+    if (widget.country != null) {
+      _countryFuture = Future.value(widget.country!);
+    } else {
+      _countryFuture = _countryService.getCountryByCode(widget.countryCode);
+    }
   }
 
   @override
@@ -29,6 +37,34 @@ class _CountryDetailScreenState extends State<CountryDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Country Details'),
+        actions: [
+          Consumer<FavoritesProvider>(
+            builder: (context, favoritesProvider, child) {
+              return FutureBuilder<Country>(
+                future: _countryFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    final country = snapshot.data!;
+                    return IconButton(
+                      icon: Icon(
+                        favoritesProvider.isFavorite(country.code)
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: favoritesProvider.isFavorite(country.code)
+                            ? Colors.red
+                            : Colors.white,
+                      ),
+                      onPressed: () {
+                        favoritesProvider.toggleFavorite(country.code);
+                      },
+                    );
+                  }
+                  return const SizedBox();
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<Country>(
         future: _countryFuture,
@@ -44,7 +80,15 @@ class _CountryDetailScreenState extends State<CountryDetailScreen> {
                 children: [
                   const Icon(Icons.error, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text('Error: ${snapshot.error}'),
+                  const Text(
+                    'Error loading country details',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Code: ${widget.countryCode}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
@@ -85,15 +129,38 @@ class _CountryDetailScreenState extends State<CountryDetailScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                Text(
-                  country.name,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        country.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Consumer<FavoritesProvider>(
+                      builder: (context, favoritesProvider, child) {
+                        return Icon(
+                          favoritesProvider.isFavorite(country.code)
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: favoritesProvider.isFavorite(country.code)
+                              ? Colors.red
+                              : Colors.grey,
+                        );
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
                 Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 2,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -101,8 +168,8 @@ class _CountryDetailScreenState extends State<CountryDetailScreen> {
                         _buildDetailRow('Capital', country.capital),
                         _buildDetailRow('Region', country.region),
                         _buildDetailRow(
-                            'Population',
-                            country.population.toString()
+                          'Population',
+                          country.population.toString(),
                         ),
                         _buildDetailRow('Country Code', country.code),
                       ],

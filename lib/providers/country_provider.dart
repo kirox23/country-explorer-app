@@ -20,11 +20,13 @@ class CountryProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      print('🔄 Loading countries...');
       _countries = await _countryService.getAllCountries();
       _filteredCountries = _countries;
-      _error = '';
+      print('✅ Successfully loaded ${_countries.length} countries');
     } catch (e) {
-      _error = e.toString();
+      print('❌ Error: $e');
+      _error = 'Failed to load countries. Please check your internet connection.';
       _countries = [];
       _filteredCountries = [];
     } finally {
@@ -33,30 +35,15 @@ class CountryProvider with ChangeNotifier {
     }
   }
 
+  // ADD THIS SEARCH METHOD:
   void searchCountries(String query) {
     if (query.isEmpty) {
       _filteredCountries = _countries;
     } else {
       _filteredCountries = _countries.where((country) {
         return country.name.toLowerCase().contains(query.toLowerCase()) ||
-            country.capital.toLowerCase().contains(query.toLowerCase());
+            (country.capital?.toLowerCase() ?? '').contains(query.toLowerCase());
       }).toList();
-    }
-    notifyListeners();
-  }
-
-  // Optional: Add sorting for BON-04
-  void sortCountries(String sortBy) {
-    switch (sortBy) {
-      case 'name':
-        _filteredCountries.sort((a, b) => a.name.compareTo(b.name));
-        break;
-      case 'population':
-        _filteredCountries.sort((a, b) => b.population.compareTo(a.population));
-        break;
-      case 'region':
-        _filteredCountries.sort((a, b) => a.region.compareTo(b.region));
-        break;
     }
     notifyListeners();
   }
