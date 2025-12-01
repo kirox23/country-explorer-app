@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/country_provider.dart';
 import '../widgets/country_card.dart';
+import '../widgets/search_delegate.dart';
 import 'country_detail_screen.dart';
 
 class CountryListScreen extends StatefulWidget {
@@ -25,6 +26,29 @@ class _CountryListScreenState extends State<CountryListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Country Explorer'),
+        actions: [
+          // Search button
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              showSearch(
+                context: context,
+                delegate: CountrySearchDelegate(),
+              ).then((countryCode) {
+                if (countryCode != null && countryCode.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CountryDetailScreen(
+                        countryCode: countryCode,
+                      ),
+                    ),
+                  );
+                }
+              });
+            },
+          ),
+        ],
       ),
       body: Consumer<CountryProvider>(
         builder: (context, countryProvider, child) {
